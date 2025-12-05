@@ -1,5 +1,11 @@
 # DIAGNOSE/project_diagnose/rendering.py
 
+from .analyzer import (
+    format_stats,
+    format_ai_analysis,
+    format_future_analysis,
+)
+
 def render_tree(stats):
     return "# ===== Структура проекта =====\n" + stats.get("tree", "")
 

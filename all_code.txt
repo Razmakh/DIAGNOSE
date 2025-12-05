@@ -1,3 +1,81 @@
+# ===== Аналитика проекта =====
+Суммарный вес файлов: 16.4 KB
+
+Количество строк по расширениям:
+  .py: 513 строк
+
+Топ 5 самых тяжёлых файлов:
+   12.1 KB  project_diagnose\analyzer.py
+    1.5 KB  project_diagnose\web.py
+    1.3 KB  project_diagnose\cli.py
+    1.1 KB  setup.py
+     479 B  project_diagnose\rendering.py
+
+Топ 5 самых длинных файлов:
+     360 строк  project_diagnose\analyzer.py
+      55 строк  project_diagnose\cli.py
+      48 строк  project_diagnose\web.py
+      31 строк  setup.py
+      18 строк  project_diagnose\rendering.py
+
+Подозрительно маленькие файлы (возможно мусор):
+      21 B,   1 строк  project_diagnose\__init__.py
+
+# ===== AI-оценка состояния проекта =====
+
+Структура по строкам (ASCII pie chart):
+.py    | #################### | 100.0%
+
+Индекс хаоса: 7.04
+Техническая карма: 85.5
+
+AI-вердикт: Нормально, жить можно. Иногда.
+
+Файлы, вызывающие сомнения:
+  project_diagnose\__init__.py  | уровень бесполезности 57.9/100
+
+# ===== Прогноз страданий разработчика =====
+Индекс будущего сожаления (FRI): 62.15
+Будущая боль ощутима. Закладывай время на рефакторинг.
+
+Граф зависимостей подозрительных файлов:
+Нет зависимостей. Эти файлы бесполезны в гордом одиночестве.
+
+# ===== Структура проекта =====
+DIAGNOSE/
+    .gitattributes  [66 B, 2025-12-05 10:49, 2 строк]
+    .gitignore  [54 B, 2025-12-05 10:42, 6 строк]
+    all_code.txt  [0 B, 2025-12-05 11:43, 0 строк]
+    LICENSE  [69 B, 2025-12-05 10:36, 5 строк]
+    MANIFEST.in  [93 B, 2025-12-05 11:39, 2 строк]
+    README.md  [348 B, 2025-12-05 10:37, 12 строк]
+    setup.py  [1.1 KB, 2025-12-05 11:40, 31 строк]
+dist/
+    project_diagnose-0.1.5-py3-none-any.whl  [11.2 KB, 2025-12-05 11:40, 0 строк]
+    project_diagnose-0.1.5.tar.gz  [9.7 KB, 2025-12-05 11:40, 0 строк]
+project_diagnose/
+    analyzer.py  [12.1 KB, 2025-12-05 11:14, 360 строк]
+    cli.py  [1.3 KB, 2025-12-05 11:15, 55 строк]
+    rendering.py  [479 B, 2025-12-05 11:14, 18 строк]
+    web.py  [1.5 KB, 2025-12-05 11:32, 48 строк]
+    __init__.py  [21 B, 2025-12-05 11:35, 1 строк]
+    static/
+        script.js  [2.7 KB, 2025-12-05 11:26, 76 строк]
+        style.css  [2.3 KB, 2025-12-05 11:26, 144 строк]
+    templates/
+        index.html  [2.1 KB, 2025-12-05 11:26, 63 строк]
+project_diagnose.egg-info/
+    dependency_links.txt  [1 B, 2025-12-05 11:40, 1 строк]
+    entry_points.txt  [63 B, 2025-12-05 11:40, 2 строк]
+    PKG-INFO  [1.2 KB, 2025-12-05 11:40, 37 строк]
+    requires.txt  [6 B, 2025-12-05 11:40, 1 строк]
+    SOURCES.txt  [522 B, 2025-12-05 11:40, 18 строк]
+    top_level.txt  [17 B, 2025-12-05 11:40, 1 строк]
+
+# ------- project_diagnose\__init__.py
+__version__ = "0.1.5"
+
+# ------- project_diagnose\analyzer.py
 # DIAGNOSE/project_diagnose/analyzer.py
 
 import os
@@ -358,3 +436,168 @@ def analyze_project():
     stats["files"] = files
     stats["tree"] = build_tree()   
     return stats
+
+# ------- project_diagnose\cli.py
+# DIAGNOSE/project_diagnose/cli.py
+
+import argparse
+from .analyzer import analyze_project, dump_project
+from .rendering import render_text_report, render_tree
+from .web import run_web
+
+def main():
+    parser = argparse.ArgumentParser(description="Диагностика проекта")
+
+    parser.add_argument(
+        "command",
+        choices=["analyze", "report", "tree", "full", "web", "dump"],
+        help="Команда анализа"
+    )
+
+    parser.add_argument(
+        "--html",
+        action="store_true",
+        help="Вывести отчёт в HTML"
+    )
+
+    args = parser.parse_args()
+
+    if args.command == "dump":
+        dump_project()
+        return
+
+    stats = analyze_project()
+
+    if args.command == "analyze":
+        print("Анализ выполнен.")
+        return
+
+    if args.command == "tree":
+        print(render_tree(stats))
+        return
+
+    if args.command == "web":
+        run_web()
+        return
+
+    if args.command == "report":
+        if args.html:
+            print("<pre>")
+            print(render_text_report(stats))
+            print("</pre>")
+        else:
+            print(render_text_report(stats))
+        return
+
+    if args.command == "full":
+        print(render_tree(stats))
+        print()
+        print(render_text_report(stats))
+
+
+# ------- project_diagnose\rendering.py
+# DIAGNOSE/project_diagnose/rendering.py
+
+from .analyzer import (
+    format_stats,
+    format_ai_analysis,
+    format_future_analysis,
+)
+
+def render_tree(stats):
+    return "# ===== Структура проекта =====\n" + stats.get("tree", "")
+
+
+def render_text_report(stats):
+    blocks = []
+    blocks.append(format_stats(stats))
+    blocks.append(format_ai_analysis(stats))
+    blocks.append(format_future_analysis(stats))
+    return "\n".join(blocks)
+
+
+# ------- project_diagnose\web.py
+from flask import Flask, render_template, Response
+from .analyzer import analyze_project, calc_chaos_score, calc_tech_karma, calc_future_regret_index
+from .rendering import render_text_report, render_tree
+
+app = Flask(__name__, template_folder="templates", static_folder="static")
+
+_stats_cache = None
+_report_cache = None
+_tree_cache = None
+_metrics_cache = None
+
+
+def compute_metrics(stats):
+    return {
+        "chaos": calc_chaos_score(stats),
+        "tech_karma": calc_tech_karma(stats),
+        "future_regret": calc_future_regret_index(stats),
+        "ext_lines": stats.get("ext_lines", {}),
+        "total_size": stats.get("total_size", 0),
+    }
+
+
+def get_stats():
+    global _stats_cache, _report_cache, _tree_cache, _metrics_cache
+    if _stats_cache is None:
+        stats = analyze_project()
+        _stats_cache = stats
+        _report_cache = render_text_report(stats)
+        _tree_cache = render_tree(stats)
+        _metrics_cache = compute_metrics(stats)
+    return _stats_cache, _report_cache, _tree_cache, _metrics_cache
+
+
+@app.route("/")
+def index():
+    _, report, tree, metrics = get_stats()
+    return render_template("index.html", report=report, tree=tree, metrics=metrics)
+
+
+@app.route("/report.txt")
+def download():
+    _, report, _, _ = get_stats()
+    return Response(report, mimetype="text/plain")
+
+
+def run_web():
+    print("Web-интерфейс запущен: http://127.0.0.1:5000")
+    app.run(debug=False)
+
+
+# ------- setup.py
+# DIAGNOSE/setup.py
+
+from setuptools import setup, find_packages
+
+setup(
+    name="project-diagnose",
+    version="0.1.5",
+    packages=find_packages(),
+    include_package_data=True,
+    install_requires=[
+        "flask"
+    ],
+    entry_points={
+        "console_scripts": [
+            "project-diagnose=project_diagnose.cli:main"
+        ]
+    },
+    author="Razmakh",  # можешь поставить псевдоним
+    description="AI-анализатор хаоса проекта и web-интерфейс для просмотра отчётов.",
+    long_description=open("README.md", "r", encoding="utf-8").read(),
+    long_description_content_type="text/markdown",
+    url="https://github.com/yourname/project-diagnose",  # если будет
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: OS Independent",
+        "Environment :: Console",
+        "Topic :: Software Development :: Quality Assurance",
+    ],
+    python_requires=">=3.8",
+)
+
+

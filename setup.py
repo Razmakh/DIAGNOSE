@@ -4,8 +4,9 @@ from setuptools import setup, find_packages
 
 setup(
     name="project-diagnose",
-    version="0.1.0",
+    version="0.1.5",
     packages=find_packages(),
+    include_package_data=True,
     install_requires=[
         "flask"
     ],
@@ -14,7 +15,7 @@ setup(
             "project-diagnose=project_diagnose.cli:main"
         ]
     },
-    author="Andrey",  # можешь поставить псевдоним
+    author="Razmakh",  # можешь поставить псевдоним
     description="AI-анализатор хаоса проекта и web-интерфейс для просмотра отчётов.",
     long_description=open("README.md", "r", encoding="utf-8").read(),
     long_description_content_type="text/markdown",

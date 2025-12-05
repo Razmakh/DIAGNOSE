@@ -1,7 +1,7 @@
 # DIAGNOSE/project_diagnose/cli.py
 
 import argparse
-from .analyzer import analyze_project
+from .analyzer import analyze_project, dump_project
 from .rendering import render_text_report, render_tree
 from .web import run_web
 
@@ -10,7 +10,7 @@ def main():
 
     parser.add_argument(
         "command",
-        choices=["analyze", "report", "tree", "full", "web"],
+        choices=["analyze", "report", "tree", "full", "web", "dump"],
         help="Команда анализа"
     )
 
@@ -22,6 +22,10 @@ def main():
 
     args = parser.parse_args()
 
+    if args.command == "dump":
+        dump_project()
+        return
+
     stats = analyze_project()
 
     if args.command == "analyze":
@@ -31,9 +35,11 @@ def main():
     if args.command == "tree":
         print(render_tree(stats))
         return
+
     if args.command == "web":
         run_web()
         return
+
     if args.command == "report":
         if args.html:
             print("<pre>")
