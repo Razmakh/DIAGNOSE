@@ -1,0 +1,16 @@
+{
+    "include_ext": [
+        ".py",
+        ".json"
+    ],
+    "exclude_dirs": [
+        "venv",
+        "__pycache__",
+        ".git"
+    ],
+    "exclude_files": [],
+    "include_files": [],
+    "special_json": [
+        "config_ui.json"
+    ]
+}

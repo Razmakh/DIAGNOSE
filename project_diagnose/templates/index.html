@@ -8,12 +8,21 @@
 <body>
 
 <header>
-    <h1>Project Diagnose</h1>
-    <button id="themeToggle">🌓 Тема</button>
+    <h1>Diagnose</h1>
+
+    <label class="theme-switch">
+        <input type="checkbox" id="themeToggle">
+        <span class="switch-track">
+            <span class="icon sun">☀</span>
+            <span class="icon moon">🌙</span>
+        </span>
+    </label>
 </header>
 
 <div class="toolbar">
+	<a href="/settings" class="button">⚙ Настройки</a>
     <button id="refactorBtn">🛠 Рефакторинг</button>
+	<a href="/dump" class="button">📦 Dump проекта</a>
     <a href="/report.txt" class="button">⬇ Скачать отчёт (.txt)</a>
     <input id="searchInput" type="text" placeholder="Поиск в отчёте…" />
 </div>

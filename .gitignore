@@ -4,3 +4,4 @@ __pycache__/
 dist/
 build/
 *.egg-info/
+all_code.txt

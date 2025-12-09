@@ -1,15 +1,33 @@
-// ============ ТЁМНАЯ / СВЕТЛАЯ ТЕМА ============
-const body = document.body;
-const toggle = document.getElementById("themeToggle");
+// ================= ТЕМА =================
 
-if (localStorage.getItem("theme") === "dark") {
-    body.classList.add("dark");
+function applyTheme() {
+    const theme = localStorage.getItem("project_diagnose_theme") || "light";
+    const root = document.documentElement;
+    const toggle = document.getElementById("themeToggle");
+
+    if (theme === "dark") {
+        root.classList.add("dark");
+        if (toggle) toggle.checked = true;
+    } else {
+        root.classList.remove("dark");
+        if (toggle) toggle.checked = false;
+    }
 }
 
-toggle.addEventListener("click", () => {
-    body.classList.toggle("dark");
-    localStorage.setItem("theme", body.classList.contains("dark") ? "dark" : "light");
+document.addEventListener("DOMContentLoaded", () => {
+    applyTheme();
+
+    const toggle = document.getElementById("themeToggle");
+
+    if (toggle) {
+        toggle.addEventListener("change", () => {
+            const theme = toggle.checked ? "dark" : "light";
+            localStorage.setItem("project_diagnose_theme", theme);
+            applyTheme();
+        });
+    }
 });
+
 
 // ============ COLLAPSIBLE PANELS ============
 document.querySelectorAll(".collapsible").forEach(h => {

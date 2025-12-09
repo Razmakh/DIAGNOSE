@@ -1,6 +1,18 @@
-from flask import Flask, render_template, Response
-from .analyzer import analyze_project, calc_chaos_score, calc_tech_karma, calc_future_regret_index
+import os
+import json
+from flask import Flask, render_template, Response, request, jsonify
+
+from .analyzer import (
+    analyze_project,
+    calc_chaos_score,
+    calc_tech_karma,
+    calc_future_regret_index,
+    USER_CFG_PATH,
+    build_tree_json,
+    collect_files,
+)
 from .rendering import render_text_report, render_tree
+from .config_schema import DiagnoseConfig
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
 
@@ -38,9 +50,74 @@ def index():
 
 
 @app.route("/report.txt")
-def download():
+def download_txt():
     _, report, _, _ = get_stats()
     return Response(report, mimetype="text/plain")
+
+
+# ===================== SETTINGS =====================
+
+def load_config_for_ui():
+    if os.path.exists(USER_CFG_PATH):
+        try:
+            with open(USER_CFG_PATH, "r", encoding="utf-8") as f:
+                raw = json.load(f)
+            cfg = DiagnoseConfig(**raw)
+            return cfg.model_dump()
+        except Exception:
+            return DiagnoseConfig().model_dump()
+    return DiagnoseConfig().model_dump()
+
+
+@app.route("/settings")
+def settings():
+    cfg = load_config_for_ui()
+    tree = build_tree_json()
+    return render_template("settings.html", config=cfg, tree=tree)
+
+
+@app.route("/save_settings", methods=["POST"])
+def save_settings():
+    data = request.json
+    cfg_obj = data.get("config")
+
+    try:
+        cfg = DiagnoseConfig(**cfg_obj)
+        with open(USER_CFG_PATH, "w", encoding="utf-8") as f:
+            json.dump(cfg.model_dump(), f, indent=4, ensure_ascii=False)
+
+        global _stats_cache, _report_cache, _tree_cache, _metrics_cache
+        _stats_cache = _report_cache = _tree_cache = _metrics_cache = None
+
+        return jsonify({"status": "ok"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)})
+
+
+# ===================== DUMP =====================
+
+@app.route("/dump")
+def dump_project():
+    files = collect_files()
+    buffer = []
+
+    for path in files:
+        rel = os.path.relpath(path, os.getcwd())
+        buffer.append(f"# -------- {rel}")
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                buffer.append(f.read())
+        except Exception as e:
+            buffer.append(f"<<Error reading file: {e}>>")
+        buffer.append("\n")
+
+    out = "\n".join(buffer)
+
+    return Response(
+        out,
+        mimetype="text/plain",
+        headers={"Content-Disposition": "attachment; filename=project_dump.txt"}
+    )
 
 
 def run_web():

@@ -3,6 +3,7 @@
 import os
 import math
 import datetime
+from .config_schema import DiagnoseConfig
 
 ROOT = os.getcwd()
 OUTPUT_FILE = os.path.join(ROOT, "all_code.txt")
@@ -11,26 +12,112 @@ EXCLUDE_DIRS = {"venv", "__pycache__", ".git", ".idea", ".vscode"}
 INCLUDE_EXT = {".py", ".json"}
 SPECIAL_JSON = {"config_ui.json"}
 
+USER_CFG_PATH = os.path.join(ROOT, "config.diagnose")
+
+def generate_default_config(path):
+    default_cfg = {
+        "include_ext": [".py", ".json"],
+        "exclude_dirs": ["venv", "__pycache__", ".git"],
+        "exclude_files": [],
+        "include_files": [],
+        "special_json": ["config_ui.json"]
+    }
+    try:
+        with open(path, "w", encoding="utf-8") as f:
+            import json
+            json.dump(default_cfg, f, indent=4, ensure_ascii=False)
+        print("[diagnose] Создан новый config.diagnose (пустой шаблон).")
+    except Exception as e:
+        print(f"[diagnose] Не удалось создать config.diagnose: {e}")
+        
+def load_user_config():
+    if not os.path.exists(USER_CFG_PATH):
+        generate_default_config(USER_CFG_PATH)
+        print("[diagnose] Создан шаблон config.diagnose.")
+        return DiagnoseConfig()  # дефолты
+
+    try:
+        with open(USER_CFG_PATH, "r", encoding="utf-8") as f:
+            raw = f.read()
+
+        import json
+        parsed = json.loads(raw)
+
+        cfg = DiagnoseConfig(**parsed)
+        print("[diagnose] Загружен и провалидирован config.diagnose")
+        return cfg
+
+    except Exception as e:
+        print(f"[diagnose] Ошибка в config.diagnose → {e}")
+        print("[diagnose] Использую конфигурацию по умолчанию.")
+        return DiagnoseConfig()
+        
+
+USER_CFG = load_user_config()
+
+# применяем
+EXCLUDE_DIRS = set(USER_CFG.exclude_dirs)
+INCLUDE_EXT = set(USER_CFG.include_ext)
+SPECIAL_JSON = set(USER_CFG.special_json)
+EXCLUDE_FILES = set(USER_CFG.exclude_files)
+INCLUDE_FILES_EXTRA = set(USER_CFG.include_files)
+
 def should_skip_dir(dirname: str) -> bool:
     name = os.path.basename(dirname)
     return name in EXCLUDE_DIRS
 
 
-def is_valid_file(filename: str) -> bool:
-    _, ext = os.path.splitext(filename)
-    if ext == ".json" and filename not in SPECIAL_JSON:
+def is_valid_file(rel_path: str, filename: str) -> bool:
+    # 1) Полный путь в списке исключений?
+    if rel_path in EXCLUDE_FILES:
         return False
+
+    # 2) Имя файла в списке исключений?
+    if filename in EXCLUDE_FILES:
+        return False
+
+    # 3) Принудительно включённый файл (полный путь или только имя)
+    if rel_path in INCLUDE_FILES_EXTRA:
+        return True
+    if filename in INCLUDE_FILES_EXTRA:
+        return True
+
+    _, ext = os.path.splitext(filename)
+
+    # 4) Особые JSON
+    if ext == ".json" and filename in SPECIAL_JSON:
+        return True
+
+    # 5) Стандартная фильтрация по расширению
     return ext in INCLUDE_EXT
 
+def build_tree_json():
+    tree = {}
+
+    for root, dirs, files in os.walk(ROOT):
+        rel = os.path.relpath(root, ROOT)
+
+        parts = [] if rel == "." else rel.split(os.sep)
+
+        node = tree
+        for p in parts:
+            node = node.setdefault(p, {})
+
+        node["_files"] = files
+
+    return tree
 
 def collect_files():
     collected = []
 
     for root, dirs, files in os.walk(ROOT):
         dirs[:] = [d for d in dirs if not should_skip_dir(os.path.join(root, d))]
+
         for f in files:
-            if is_valid_file(f):
-                full_path = os.path.join(root, f)
+            full_path = os.path.join(root, f)
+            rel_path = os.path.relpath(full_path, ROOT)
+
+            if is_valid_file(rel_path, f):
                 collected.append(full_path)
 
     collected.sort()
@@ -169,19 +256,37 @@ def build_pie_chart(stats):
 
 
 def calc_chaos_score(stats):
-    # хаос = количество типов файлов * коэффициент разброса размеров * коэффициент мелкого мусора
-    unique_ext = len(stats["ext_lines"])
-    size_spread = (stats["heavy_files"][0][0] + 1) / (stats["tiny_files"][0][0] + 1)
-    tiny_penalty = len(stats["tiny_files"]) * 0.7
+    """Оцениваем хаос проекта. Устойчиво к пустым спискам."""
+    unique_ext = len(stats.get("ext_lines", {}))
+    heavy = stats.get("heavy_files", [])
+    tiny = stats.get("tiny_files", [])
+
+    if not heavy:
+        # вообще нет файлов – хаосу особо не из чего собираться
+        return 0.0
+
+    if not tiny:
+        # нет мелкого мусора → считаем spread = 1 и tiny_penalty = 0
+        size_spread = 1
+        tiny_penalty = 0
+    else:
+        size_spread = (heavy[0][0] + 1) / (tiny[0][0] + 1)
+        tiny_penalty = len(tiny) * 0.7
 
     chaos = unique_ext * math.log(size_spread + 3) + tiny_penalty
     return round(chaos, 2)
 
 
 def calc_tech_karma(stats):
-    # карма = средняя длина файла / количество маленьких файлов
-    avg_lines = sum(l for l, _ in stats["long_files"]) / len(stats["long_files"])
-    tiny_count = len(stats["tiny_files"]) or 1
+    """Техническая карма = средняя длина файла / количество мелких файлов."""
+    long_files = stats.get("long_files", [])
+    tiny_files = stats.get("tiny_files", [])
+
+    if not long_files:
+        return 0.0
+
+    avg_lines = sum(l for l, _ in long_files) / len(long_files)
+    tiny_count = len(tiny_files) or 1
     karma = avg_lines / tiny_count
     return round(karma, 2)
 
